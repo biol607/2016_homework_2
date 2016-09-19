@@ -5,26 +5,90 @@ date: "September 19, 2016"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+###1. Sample Properties
+#####Consider the following vasopressin levels in voles.
+```{r, echo=TRUE}
+library(magrittr) 
+library(dplyr) 
+library(ggplot2) 
+vole_vaso <- c(98,96,94,88,86,82,77,74,70,60,
+           59,52,50,47,40,35,29,13,6,5)
 ```
 
-## R Markdown
+#####1a. Say “Vole vasopressin” 10 times as fast as you can. How many times did you trip up?
+After the first one!!
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+#####1b. What is the mean, median, sd, and interquartile range of the sample?
+```{r, echo=TRUE}
+mean(vole_vaso)
+median(vole_vaso)
+sd(vole_vaso)
+IQR(vole_vaso)
+summary(vole_vaso)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+#####1c. What is the standard error of the mean (do this with a formula!)?
+Standard error of the mean = standard deviation of the population/sqrt(sample size)
+sd of vole_vaso = 29.75244
+sample size of vole_vaso = 20
+```{r, echo=TRUE}
+se_vol <- ((29.75244)/sqrt(20))
+se_vol
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#####1d. What does the standard error of the mean tell you about our estimate of the mean values of the population of vole vassopressin?
+The standard error of the mean tell us the variance in our estimate of the mean values of our population. In the context of our vole population it tells us the variance in our estimate of the mean value of vasspressin in our population sample. It is basically the variance in our average of the population.
+
+###2. Sample Size for upper quartiles.
+#####We can get the upper quartile value of vole vassopressin with
+```{r, echo=TRUE}
+quantile(vole_vaso, probs = 0.75)
+```
+####Let’s assume the sample is representative of the popultion.
+
+#####2a. Use sample() to get just one resample with a sample size of 10. What is its upper quartile?
+```{r, echo=TRUE}
+vol_10 <- sample(vole_vaso, size = 10, replace = TRUE)
+quantile(vol_10, probs= 0.75)
+```
+
+#####2b. Build an initial data frame for simulations with the sample sizes 5 through 20. Have 100 simulations per sample size.
+```{r, echo=TRUE}
+vol_vaso_sim <- data.frame(vol_vaso = rep(5:20, times=100))
+```
+
+#####2c. Use this data frame to get simulated upper quartiles for each sample size.
+
+UpperQ <- vol_vaso_sim %>%
+group_by(sim) %>%
+mutate(IQR_pop = IQR(rnorm(vol_vaso, mean = 10, sd = 3)))
+
+*Jarret, I was having trouble with this! Were we suppose to define the upper quartile with the quantile function or the IQR function? I could only get this to work if I used rnorm and then defined the mean and the sd. Were we suppose to bootstrap this? Also how do you define the mean and sd for rnorm? Are these values also the same for a rnorm disturbtion? I just used these values from our class notes*
+
+#####2d. With a plot, make a guesstimate as to the best sample size for estimating the upper quartile of the population.
+
+plot(vol_vaso ~ IQR_pop, data = UpperQ)
+
+###3. SE and CI
+
+#####3a. With the upper quartile simulations, calculate the SD for each sample size using dplyr
+
+SD_UpperQ <- UpperQ %>%
+mutate(SE_UpperQ = sd(rnorm(UpperQ, mean = 10, sd = 3)))
+
+#####3b. What does this value, the standard error of the upper quartile, mean?
+
+The standard error of the upper quartile 
+
+#####3c. What is the CI of the upper quartile with a sample size of 10. What does this mean?
+
+CI_val <- SD_UpperQ %>%
+mutate(CI_UpperQ = (2*SE_UpperQ))
+
+*Is this the only way to caclute the CI or is there a function in R?*
+
+#####3d. Extra Credit: Instead of having each sim calculate a upper quartile, and then sifting down to the SE of that upper quartile (or the CI), have each simulation calculate a CI. Then, for just a sample size of 10, how many CI’s contain the true value of 83?
+
+#####3e. Extra extra credit: If you find this question by pulling from your forked repository, +1
+
+
