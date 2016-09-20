@@ -16,7 +16,7 @@ vole_vaso <- c(98,96,94,88,86,82,77,74,70,60,
 ```
 
 #####1a. Say “Vole vasopressin” 10 times as fast as you can. How many times did you trip up?
-After the first one!!
+:p
 
 #####1b. What is the mean, median, sd, and interquartile range of the sample?
 ```{r, echo=TRUE}
@@ -37,7 +37,7 @@ se_vol
 ```
 
 #####1d. What does the standard error of the mean tell you about our estimate of the mean values of the population of vole vassopressin?
-The standard error of the mean tell us the variance in our estimate of the mean values of our population. In the context of our vole population it tells us the variance in our estimate of the mean value of vasspressin in our population sample. It is basically the variance in our average of the population.
+The standard error of the mean tells us the variance in our estimate of the mean values of our population. In the context of our vole population it tells us the variance in our estimate of the mean value of vasspressin in our population sample. It is basically the variance in our average of the population. If we had a larger populaiton size our standard error of the mean would decrease making our estimate stronger. 
 
 ###2. Sample Size for upper quartiles.
 #####We can get the upper quartile value of vole vassopressin with
@@ -54,36 +54,56 @@ quantile(vol_10, probs= 0.75)
 
 #####2b. Build an initial data frame for simulations with the sample sizes 5 through 20. Have 100 simulations per sample size.
 ```{r, echo=TRUE}
-vol_vaso_sim <- data.frame(vol_vaso = rep(5:20, times=100))
+vol_vaso_sim <- data.frame(sample_size = rep(5:20, times = 100))
+vol_vaso_sim$sim = 1:nrow(vol_vaso_sim)
+head(vol_vaso_sim)
 ```
 
 #####2c. Use this data frame to get simulated upper quartiles for each sample size.
-
-UpperQ <- vol_vaso_sim %>%
-group_by(sim) %>%
-mutate(IQR_pop = IQR(rnorm(vol_vaso, mean = 10, sd = 3)))
-
-*Jarret, I was having trouble with this! Were we suppose to define the upper quartile with the quantile function or the IQR function? I could only get this to work if I used rnorm and then defined the mean and the sd. Were we suppose to bootstrap this? Also how do you define the mean and sd for rnorm? Are these values also the same for a rnorm disturbtion? I just used these values from our class notes*
+```{r, echo=TRUE}
+vol_vaso_sim <- vol_vaso_sim %>%
+  group_by(sim) %>%
+  mutate(IQR_sample_size = IQR(rnorm(sample_size, mean = 58.05, sd = 29.75244))) %>%
+  ungroup()
+head(vol_vaso_sim)
+```
+Mean and sd were calculated from orginal vol_vaso data set from question #1
 
 #####2d. With a plot, make a guesstimate as to the best sample size for estimating the upper quartile of the population.
 
-plot(vol_vaso ~ IQR_pop, data = UpperQ)
+```{r, echo=TRUE}
+plot(IQR_sample_size ~ sample_size, data = vol_vaso_sim)
+```
 
 ###3. SE and CI
 
 #####3a. With the upper quartile simulations, calculate the SD for each sample size using dplyr
+```{r, echo=TRUE}
+vol_vaso_sim <- vol_vaso_sim %>%
+  group_by(sim) %>%
+  mutate(IQR_SE = sd(rnorm(IQR_sample_size, mean = 58.05, sd = 29.75244))) 
+head(vol_vaso_sim)
+```
 
-SD_UpperQ <- UpperQ %>%
-mutate(SE_UpperQ = sd(rnorm(UpperQ, mean = 10, sd = 3)))
+*SD of sample size or the SD of the upper quaritle simulations for each sample size?* 
 
 #####3b. What does this value, the standard error of the upper quartile, mean?
 
-The standard error of the upper quartile 
+The standard error of the upper quartile is the standard deviation of  our estimate of the upper quartile for each sample size. This estimate allows us to put a quantative value on how well our estimate of the upper quartile of our simulation was or how much we can 'trust' our calculation of the estimate of our estimate. 
 
 #####3c. What is the CI of the upper quartile with a sample size of 10. What does this mean?
 
-CI_val <- SD_UpperQ %>%
-mutate(CI_UpperQ = (2*SE_UpperQ))
+95% CI = 2 * SE
+
+```{r, echo=TRUE}
+vol_vaso_sim <- vol_vaso_sim %>%
+  group_by(sim) %>%
+  mutate(CI_IQR = (2*IQR_SE)) %>%
+  ungroup()
+head(vol_vaso_sim)
+```
+
+CI of the upper quartile with a sample size of 10 is variable 
 
 *Is this the only way to caclute the CI or is there a function in R?*
 
