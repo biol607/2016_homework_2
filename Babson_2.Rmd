@@ -1,0 +1,135 @@
+---
+title: "Homework 2: Sampling and Simulation"
+output: html_document
+---
+
+##### 1. SAMPLE PROPERTIES
+```{r}
+library(dplyr)
+
+vole_vaso <- c(98,96,94,88,86,82,77,74,70,60,
+           59,52,50,47,40,35,29,13,6,5)
+
+### 1a. Say “Vole vasopressin” 10 times as fast as you can. How many times did you trip up? 4
+
+### 1b. What is the mean, median, sd, and interquartile range of the sample?
+
+summary(vole_vaso) 
+#mean = 58.05
+#median = 59.50
+sd(vole_vaso)
+#sd = 29.75
+IQR(vole_vaso)
+#iqr = 44.25
+
+
+### 1c. What is the standard error of the mean (do this with a formula!)?
+
+# SEmean = s/sqrt(n)
+sd(vole_vaso)/(sqrt(length(vole_vaso)))
+#standard error of the mean is 6.7
+
+  
+### 1d. What does the standard error of the mean tell you about our estimate of the     mean values of the population of vole vassopressin?
+  
+#The SE tells you how much you can trust your estimate. (SE is a measure of how variable the mean will be, if you repeat the whole study many times.)
+```
+
+##### 2. SAMPLE SIZE FOR UPPER QUARTILES
+```{r}
+   # Let’s assume the sample is representative of the popultion.
+
+### 2a. Use sample() to get just one resample with a sample size of 10. What is its upper quartile?
+set.seed(323)
+samp <- sample(vole_vaso, size = 10, replace = TRUE)
+quantile(samp, probs = c(0.75))
+#upper quartile is 52.0
+
+
+### 2b. Build an initial data frame for simulations with the sample sizes 5 through 20. Have 100 simulations per sample size.
+sampSim <- data.frame(samp_size = rep(5:20, times=100))
+sampSim$sim_number <- 1:nrow(sampSim)
+
+### 2c. Use this data frame to get simulated upper quartiles for each sample size.
+
+sampSim <- sampSim %>%
+  group_by(sim_number) %>%
+  mutate(q3_sample = quantile(sample(vole_vaso, size = samp_size, replace = TRUE), probs = c(0.75))) %>%
+  ungroup()
+
+
+### 2d. With a plot, make a guesstimate as to the best sample size for estimating the upper quartile of the population.
+
+plot(q3_sample ~ samp_size, data=sampSim)
+# looks like it levels off after a sample size of approximately 10
+```
+
+##### 3. SE and CI
+```{r}
+###3a. With the upper quartile simulations, calculate the SD for each sample size using dplyr
+
+sampSim_summary <- sampSim %>%
+  group_by(samp_size) %>%
+  summarise(q3_sample_sd = sd(q3_sample)) %>%
+  ungroup() %>%
+  arrange(q3_sample_sd)
+
+sampSim_summary
+
+###3b. What does this value, the standard error of the upper quartile, mean?
+
+#The standard error tells us how variable our estimate of the upper quartile is. 
+
+
+###3c. What is the CI of the upper quartile with a sample size of 10. What does this mean?
+
+#for a 95% CI two times the standard error is subtrated from the mean to get the lower bound and two times the standard error is added to the mean for the upper bound. 
+#(mean - 2SE, mean + 2SE)
+77.4050 + (11.174962*2) #upper
+77.4050 - (11.174962*2) #lower
+#95% confident that the true upper quartile with a sample size of 10 is between 55.06 and 99.75. 
+
+
+###3d. Extra Credit: Instead of having each sim calculate a upper quartile, and then sifting down to the SE of that upper quartile (or the CI), have each simulation calculate a CI. Then, for just a sample size of 10, how many CI’s contain the true value of 83?
+
+
+sampSim_summary2 <- sampSim %>%
+  group_by(samp_size) %>%
+  summarise(q3_sample_mean = mean(q3_sample), q3_sample_sd = sd(q3_sample)) %>%
+  mutate(upper = (q3_sample_mean + 2*q3_sample_sd), lower = (q3_sample_mean - 2*q3_sample_sd)) %>%
+  ungroup()
+
+sampSim_summary3 <- sampSim %>%
+  group_by(sim_number) %>%
+  mutate(q3_sample_mean = mean(q3_sample), q3_sample_sd = sd(q3_sample)) %>%
+  mutate(upper = (q3_sample_mean + 2*q3_sample_sd), lower = (q3_sample_mean - 2*q3_sample_sd)) %>%
+  ungroup()
+
+
+sampSim0 <- sampSim %>%
+  group_by(sim_number) %>%
+  mutate(q3_sample = quantile(sample(vole_vaso, size = samp_size, replace = TRUE), probs = c(0.75)), q3_sample_mean = mean(quantile(sample(vole_vaso, size = samp_size, replace = TRUE), probs = c(0.75)))) %>%
+  ungroup() %>%
+  group_by(samp_size) %>%
+  mutate(upper = (q3_sample_mean + 2*sd(q3_sample)), lower = (q3_sample_mean - 2*sd(q3_sample)))
+
+
+sampSim10 <- filter(sampSim0, samp_size == 10)
+count(filter(sampSim10, lower <= 83 & upper >= 83))
+
+#93 of them contain the true value of 83 for the upper quartile
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
