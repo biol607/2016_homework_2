@@ -1,0 +1,134 @@
+---
+title: "homework_2"
+author: "Isaac Rosenthal"
+date: "September 20, 2016"
+output: html_document
+---
+```{r, message = FALSE}
+library(dplyr) #load dplyr 
+```
+
+##1
+
+First, load the given data set.
+```{r, echo = TRUE}
+vole_vaso <- c(98,96,94,88,86,82,77,74,70,60,
+           59,52,50,47,40,35,29,13,6,5)
+```
+
+###1a. Say “Vole vasopressin” 10 times as fast as you can. How many times did you trip up?
+
+
+Three times. Not my finest work.
+
+###1b.  What is the mean, median, sd, and interquartile range of the sample?
+
+Using the `mean()`, `median()`, `sd()`, and `IQR()` functions we can easily determine the desired statistics.  
+
+```{r, echo = TRUE}
+
+mean(vole_vaso) #find the mean of vole_vaso 
+median(vole_vaso) #find the median of vole_vaso
+sd(vole_vaso) #find the standard deviation of vole_vaso
+IQR(vole_vaso) #find the inter-quartile range of vole_vaso
+```
+
+Thus, the mean of vole_vaso is `r mean(vole_vaso)`, the median is `r median(vole_vaso)`, the standard deviation is `r sd(vole_vaso)`, and the inter-quartile range is `r IQR(vole_vaso)`.
+          
+###1c. What is the standard error of the mean (do this with a formula!)?
+The standard error of the mean is equal to the standard deviation divided by the square root of the number of samples. Therefore, I can calculate it using the following formula:
+```{r}
+sd(vole_vaso)/(sqrt(length(vole_vaso))) #divides the standard devation of vol_vaso by the square root of the number of samples, which can be found by taking the length of vole_vaso
+
+```
+
+###1d. What does the standard error of the mean tell you about our estimate of the mean values of the population of vole vassopressin?
+
+The standard error tells us about the variability of the mean or, in otherwords, how much we can trust any one sample. The smaller the standard error, the more reliable our numbers are. This is expected to decrease as sample size increases.
+
+##2
+
+
+
+###2a. Use sample() to get just one resample with a sample size of 10. What is its upper quartile?
+
+```{r}
+vole_vaso %>% #take the vole_vaso data
+  sample(size = 10) %>% #take a sample of 10 points from it
+  quantile(probs = 0.75) #and find its upper quartile
+```
+
+Note that each time this is run the result will be slightly different.
+
+###2b. Build an initial data frame for simulations with the sample sizes 5 through 20. Have 100 simulations per sample size.
+
+```{r}
+vole_samp <- data.frame( #create the data frame
+  samp_size = rep(5:20, times = 100) #the sample sizes range from 5 to 20, with 100 simulations of each size
+)
+vole_samp$sim_number = 1:nrow(vole_samp) #make a column to label each simulation with a unique ID
+
+head(vole_samp) #this thing is yuge, we don't want to see it all!
+```
+
+###2c. Use this data frame to get simulated upper quartiles for each sample size.
+
+I will use dplyr to create a new column in `vole_samp` and populate t with simulated upper quartiles.
+
+```{r}
+#using the dataframe created above
+vole_samp <- vole_samp %>%
+# For each  sim
+  group_by(sim_number) %>%
+# get the upper quartile for each sim, based on samp_size
+  mutate(upper_quartile = quantile(sample(vole_vaso, size = samp_size, replace = TRUE), probs = 0.75))
+head(vole_samp) #this thing is enormous
+```
+###2d. With a plot, make a guesstimate as to the best sample size for estimating the upper quartile of the population.
+
+```{r}
+plot(upper_quartile ~ samp_size, data = vole_samp) #plot the upper quartile by the samp size
+
+```
+
+My guestimate is that 14 would be a good number. there seems to be a steep increase in precision between 10 and 15, and it looks like the biggest increase occurs betwween 13 and 14.
+
+
+##3
+###3a. With the upper quartile simulations, calculate the SD for each sample size using dplyr
+
+```{r}
+vole_samp_sd  <- vole_samp %>%  #our summary table will be called vole_samp_sd
+  group_by(samp_size) %>%  # Group it by sample size
+  summarize(upper_quartile_sd = sd(upper_quartile))   # Take the SD of the sample size and present it in a summary table
+vole_samp_sd
+```
+
+The above table contains the standard deviation of the upper quartiles within each sample size.  
+
+###3b. What does this value, the standard error of the upper quartile, mean?
+
+The standard error of the upper quartile tells us how variable the mean of the upper quartile will be if we repeated it many times. It tells us how much we can trust the answer - note it should go down as we increases sample size as the variation between samples should decrease as sample size increases.
+
+###3c. What is the CI of the upper quartile with a sample size of 10. What does this mean?
+
+We know the standard deviation of the upper quartile for a sample size of 10; from the above table it would be `r vole_samp_sd[6,2]`.  From this, we can calculate the standard error by dividing this by the square root of the number of samples, in this case 10.
+
+```{r}
+standard_error_voles <- data.frame(vole_samp_sd[6,2]/(sqrt(vole_samp_sd[6,1]))) #this grabs the value in row 6 col 2, corresponding to the SD for sample size of 10
+rename(standard_error_voles, SE = upper_quartile_sd) #this is clunky but I could not get it to work any other way and wanted to to maintain a pipeline.
+```
+
+Once we know the standard error, we can calculate the 95% confididence interval by multiplying the standard error by 1.96.
+
+```{r}
+CI <- standard_error_voles * 1.96
+rename(CI, CI = upper_quartile_sd) #still clunky.
+
+```
+
+
+This tells us that 95% of the time, the upper quartile  of a simulaton plus or minus `r CI` will contain the true value of the upper quartile. In other words, we ran 100 simulations with a sample size of 10. the true value for upper quartile is contained within the confidence interval (`r CI`) of 95 of these simulations.
+
+
+###3e. Extra extra credit: If you find this question by pulling from your forked repository, +1
